@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Cell from "./Cell";
 import "./Board.css";
 
@@ -27,23 +27,65 @@ import "./Board.css";
  *
  **/
 
-function Board({ nrows, ncols, chanceLightStartsOn }) {
+function Board({ nrows = 5, ncols = 5, chanceLightStartsOn = 0.12 }) {
   const [board, setBoard] = useState(createBoard());
 
   /** create a board nrows high/ncols wide, each cell randomly lit or unlit */
   function createBoard() {
-    let initialBoard = [];
-    // TODO: create array-of-arrays of true/false values
-    return initialBoard;
+    // Function to determine true or false based on probability
+    function assignTrueWithProbability(probability) {
+      // Generate a random number between 0 and 1
+      const randomValue = Math.random();
+      // Check if the random value is less than the probability
+      if (randomValue < probability) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    return Array.from({ length: nrows }).map((row) =>
+      Array.from({ length: ncols }).map((cell) =>
+        assignTrueWithProbability(chanceLightStartsOn)
+      )
+    );
   }
 
+  /** Deprecated code. Keeping for educational purposes.
+
+  const hasWon = useCallback(() => {
+    function allFalseValues(nestedArray) {
+      return nestedArray.every((subArray) =>
+        subArray.every((value) => value === false)
+      );
+    }
+
+    const allFalse = allFalseValues(board);
+
+    if (allFalse) {
+      //TODO remove board and replace with "You Won!" message
+      alert("won!");
+    }
+  }, [board]);
+
+  useEffect(() => {
+    hasWon();
+  }, [board, hasWon]);
+   * 
+   */
+  // Check if the game has been won
   function hasWon() {
-    // TODO: check the board in state to determine whether the player has won.
+    return board.every((row) => row.every((cell) => !cell));
   }
 
   function flipCellsAround(coord) {
-    setBoard(oldBoard => {
+    setBoard((oldBoard) => {
       const [y, x] = coord.split("-").map(Number);
+
+      // Make a (deep) copy of the oldBoard
+      const boardCopy = oldBoard.map((row) => [...row]);
+
+      // in the copy, flip the selected cell and the cells around it
 
       const flipCell = (y, x, boardCopy) => {
         // if this coord is actually on board, flip it
@@ -53,21 +95,42 @@ function Board({ nrows, ncols, chanceLightStartsOn }) {
         }
       };
 
-      // TODO: Make a (deep) copy of the oldBoard
+      flipCell(y, x, boardCopy);
+      flipCell(y - 1, x, boardCopy);
+      flipCell(y + 1, x, boardCopy);
+      flipCell(y, x - 1, boardCopy);
+      flipCell(y, x + 1, boardCopy);
 
-      // TODO: in the copy, flip this cell and the cells around it
-
-      // TODO: return the copy
+      return boardCopy;
     });
   }
 
-  // if the game is won, just show a winning msg & render nothing else
+  if (hasWon()) {
+    return <div>You win!</div>;
+  }
 
-  // TODO
+  let tblBoard = [];
 
-  // make table board
+  for (let y = 0; y < nrows; y++) {
+    let row = [];
+    for (let x = 0; x < ncols; x++) {
+      let coord = `${y}-${x}`;
+      row.push(
+        <Cell
+          key={coord}
+          isLit={board[y][x]}
+          flipCellsAroundMe={() => flipCellsAround(coord)}
+        ></Cell>
+      );
+    }
+    tblBoard.push(<tr key={y}>{row}</tr>);
+  }
 
-  // TODO
+  return (
+    <table className="Board">
+      <tbody> {tblBoard}</tbody>
+    </table>
+  );
 }
 
 export default Board;
